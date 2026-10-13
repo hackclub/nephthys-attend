@@ -5,9 +5,26 @@ from nephthys.database.tables import User
 from nephthys.utils.env import env
 
 
+# Slack's limit on a section block's text
+MAX_DESCRIPTION_LENGTH = 3000
+
+
+def description_block(description: str) -> dict:
+    """The question itself, since a link to a private help channel won't unfurl.
+
+    Special mentions (<!channel>, <!here>, user groups) are escaped so quoting a
+    question can't ping the tickets channel.
+    """
+    text = description.replace("<!", "&lt;!")
+    if len(text) > MAX_DESCRIPTION_LENGTH:
+        text = text[: MAX_DESCRIPTION_LENGTH - 1] + "…"
+    return {"type": "section", "text": {"type": "mrkdwn", "text": text or " "}}
+
+
 async def backend_message_blocks(
     author_user_id: str,
     msg_ts: str,
+    description: str,
     past_tickets: int,
     current_category_tag_id: int | None = None,
     reopened_by: User | None = None,
@@ -48,6 +65,7 @@ async def backend_message_blocks(
         category_tags_dropdown["element"]["initial_option"] = initial_option
 
     return [
+        description_block(description),
         category_tags_dropdown,
         {
             "type": "input",
@@ -104,7 +122,12 @@ async def send_backend_message(
         channel=env.slack_ticket_channel,
         text=backend_message_fallback_text(author_user_id, description, reopened_by),
         blocks=await backend_message_blocks(
-            author_user_id, msg_ts, past_tickets, current_category_tag_id, reopened_by
+            author_user_id,
+            msg_ts,
+            description,
+            past_tickets,
+            current_category_tag_id,
+            reopened_by,
         ),
         username=display_name,
         icon_url=profile_pic,
