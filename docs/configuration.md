@@ -158,6 +158,16 @@ Using this feature is **not recommended** for most help channels, as tickets bei
 | -------- | --------- | ----------- | ------- |
 | `STALE_TICKET_DAYS` | Required | Enable stale ticket auto-close; tickets inactive for this many days will be automatically closed; leave unset to disable | _Unset_ (disabled) |
 
+## Attend integration
+
+For an Attend admin help channel. When an event admin asks a question, Nephthys links the event's dashboard in the thread, asking which event first if they run more than one. It then lets them privately enter a participant's email or Slack ID, and links that participant's admin page in the thread.
+
+<!-- prettier-ignore -->
+| Variable | Required? | Description | Default |
+| -------- | --------- | ----------- | ------- |
+| `ATTEND_API_KEY` | Required | An Attend global API token (`attn_...`) with the `support:read` scope, created at `/admin/global_api_tokens`; leave unset to disable | _Unset_ (disabled) |
+| `ATTEND_BASE_URL` | Optional | Base URL of the Attend instance | `https://attend.hackclub.com` |
+
 ## Other feature flags
 
 You may wish to disable the daily summary for every low-traffic support channels.

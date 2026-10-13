@@ -16,6 +16,7 @@ from nephthys.database.tables import BotMessage
 from nephthys.database.tables import CategoryTag
 from nephthys.database.tables import Ticket
 from nephthys.database.tables import User
+from nephthys.events.attend import start_attend_flow
 from nephthys.events.message.send_backend_message import backend_message_blocks
 from nephthys.events.message.send_backend_message import backend_message_fallback_text
 from nephthys.events.message.send_backend_message import send_backend_message
@@ -271,6 +272,16 @@ async def handle_new_question(
             f"Top-level message for thread_ts={event['ts']} has been deleted. Cleaning up and deleting ticket_id={ticket.id}"
         )
         await delete_and_clean_up_ticket(ticket)
+        return
+
+    if env.attend_api_key:
+        try:
+            async with perf_timer("Adding Attend context"):
+                await start_attend_flow(event)
+        except Exception as e:
+            # Never let Attend being down get in the way of the ticket itself
+            logging.error(f"Failed to add Attend context thread_ts={event['ts']}: {e}")
+            await send_heartbeat(f"Failed to add Attend context: {e}")
 
 
 async def send_user_facing_message(

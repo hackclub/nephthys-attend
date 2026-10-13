@@ -133,6 +133,12 @@ class Environment:
 
         self.port = int(os.environ.get("PORT", 3000))
 
+        # Attend integration: a global API token with support:read turns it on
+        self.attend_api_key = os.environ.get("ATTEND_API_KEY")
+        self.attend_base_url = os.environ.get(
+            "ATTEND_BASE_URL", "https://attend.hackclub.com"
+        ).rstrip("/")
+
         self.slack_heartbeat_channel = os.environ.get("SLACK_HEARTBEAT_CHANNEL")
 
         # Stale ticket auto-close: number of days of inactivity before closing

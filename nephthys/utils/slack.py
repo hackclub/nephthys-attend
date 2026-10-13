@@ -32,6 +32,10 @@ from nephthys.errors.errors import PermissionDenied
 from nephthys.errors.errors import TicketNotClosedError
 from nephthys.events.app_home_opened import on_app_home_opened
 from nephthys.events.app_home_opened import open_app_home
+from nephthys.events.attend import EVENT_SELECT_ACTION
+from nephthys.events.attend import on_event_selected
+from nephthys.events.attend import on_participant_submitted
+from nephthys.events.attend import PARTICIPANT_INPUT_ACTION
 from nephthys.events.channel_join import channel_join
 from nephthys.events.channel_left import channel_left
 from nephthys.events.message_creation import on_message
@@ -69,6 +73,22 @@ async def handle_mark_resolved_button(
     value = body["actions"][0]["value"]
     resolver = body["user"]["id"]
     await resolve(value, resolver, client)
+
+
+@app.action(EVENT_SELECT_ACTION)
+async def handle_attend_event_select(
+    ack: AsyncAck, body: Dict[str, Any], client: AsyncWebClient
+):
+    await ack()
+    await on_event_selected(body, client)
+
+
+@app.action(PARTICIPANT_INPUT_ACTION)
+async def handle_attend_participant_lookup(
+    ack: AsyncAck, body: Dict[str, Any], client: AsyncWebClient
+):
+    await ack()
+    await on_participant_submitted(body, client)
 
 
 @app.options("tag-list")  # compat with old backend msgs
