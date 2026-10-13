@@ -1,0 +1,75 @@
+<style>
+  :root {
+    --muted: color-mix(in srgb, CanvasText 60%, Canvas);
+    --line: color-mix(in srgb, CanvasText 15%, Canvas);
+    --soft: color-mix(in srgb, CanvasText 5%, Canvas);
+    --accent: #ec3750;
+  }
+
+  html {
+    font-family: sans-serif;
+    color-scheme: light dark;
+  }
+
+  body {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  nav.crumbs {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .muted {
+    color: var(--muted);
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 0.05em 0.55em;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: var(--soft);
+    border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  .pill.waiting {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 0.5em 1em 0.5em 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+
+  th {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: normal;
+  }
+
+  textarea,
+  button {
+    font: inherit;
+  }
+</style>

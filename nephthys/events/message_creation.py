@@ -95,10 +95,18 @@ async def handle_message_in_thread(event: dict[str, Any], db_user: User | None):
         )
         return
 
-    # Update lastMsg fields in DB
-    is_author = bool(
-        ticket_message.opened_by and event["user"] == ticket_message.opened_by.slack_id
-    )
+    await record_thread_message(ticket_message, db_user, event["user"])
+
+
+async def record_thread_message(
+    ticket: Ticket, db_user: User | None, author_slack_id: str
+):
+    """Update the lastMsg fields of a ticket after a message is sent in its thread,
+    and assign the ticket to the sender if they're a helper.
+
+    The ticket must be fetched with its opened_by user joined.
+    """
+    is_author = bool(ticket.opened_by and author_slack_id == ticket.opened_by.slack_id)
     is_helper = bool(db_user and db_user.helper)
     await Ticket.update(
         {
@@ -111,24 +119,22 @@ async def handle_message_in_thread(event: dict[str, Any], db_user: User | None):
                 else UserType.OTHER
             ),
         }
-    ).where(Ticket.msg_ts == event["thread_ts"])
+    ).where(Ticket.id == ticket.id)
 
     # Ensure the ticket is assigned to the helper who last sent a message
-    if db_user and db_user.helper and ticket_message.status != TicketStatus.CLOSED:
+    if db_user and db_user.helper and ticket.status != TicketStatus.CLOSED:
         logging.info(
-            f"Assigning ticket ticket_id={ticket_message.id} to helper user_id={db_user.id}"
+            f"Assigning ticket ticket_id={ticket.id} to helper user_id={db_user.id}"
         )
         await Ticket.update(
             {
                 Ticket.assigned_to: db_user.id,
                 Ticket.status: TicketStatus.IN_PROGRESS,
                 Ticket.assigned_at: (
-                    datetime.now()
-                    if not ticket_message.assigned_at
-                    else ticket_message.assigned_at
+                    datetime.now() if not ticket.assigned_at else ticket.assigned_at
                 ),
             }
-        ).where(Ticket.msg_ts == event["thread_ts"])
+        ).where(Ticket.id == ticket.id)
 
 
 async def handle_new_question(

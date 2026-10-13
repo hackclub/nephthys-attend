@@ -1,0 +1,13 @@
+<script>
+  // Show timestamps relative to now (e.g. "3 hours ago"), with the full local time on hover
+  const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+  const units = [["day", 86400], ["hour", 3600], ["minute", 60]]
+  document.querySelectorAll("time[datetime]").forEach((el) => {
+    if (!el.dateTime) return
+    const date = new Date(el.dateTime)
+    const seconds = (date - Date.now()) / 1000
+    const [unit, size] = units.find(([, size]) => Math.abs(seconds) >= size) ?? ["minute", 60]
+    el.textContent = relativeTime.format(Math.round(seconds / size), unit)
+    el.title = date.toLocaleString()
+  })
+</script>

@@ -19,6 +19,9 @@
   <p>welcome {{ user.slack_id }} :)</p>
   <p>here are some things you can do! </p>
   <ul>
+    {% if user.helper %}
+    <li><a href="/lobby/tickets">answer tickets</a></li>
+    {% endif %}
     <li><a href="/lobby/api_keys">create or manage your API keys</a></li>
   </ul>
 

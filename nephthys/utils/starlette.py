@@ -21,6 +21,9 @@ from nephthys.api.lobby.lobby import api_keys
 from nephthys.api.lobby.lobby import create_api_key
 from nephthys.api.lobby.lobby import delete_api_key
 from nephthys.api.lobby.lobby import lobby
+from nephthys.api.lobby.tickets import ticket_detail
+from nephthys.api.lobby.tickets import ticket_queue
+from nephthys.api.lobby.tickets import ticket_reply
 from nephthys.api.stats import stats
 from nephthys.api.stats_range import stats_range
 from nephthys.api.stats_v2 import stats_v2
@@ -95,6 +98,9 @@ lobby_submount = (
             Route(path="/api_keys", endpoint=api_keys, methods=["GET"]),
             Route(path="/api_keys/create", endpoint=create_api_key, methods=["POST"]),
             Route(path="/api_keys/{id}", endpoint=delete_api_key, methods=["DELETE"]),
+            Route(path="/tickets", endpoint=ticket_queue, methods=["GET"]),
+            Route(path="/tickets/{id}", endpoint=ticket_detail, methods=["GET"]),
+            Route(path="/tickets/{id}/reply", endpoint=ticket_reply, methods=["POST"]),
         ],
     )
     if env.hca

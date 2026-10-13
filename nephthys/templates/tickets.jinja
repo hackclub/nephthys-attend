@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tickets - {{ app_title }}</title>
+  {% include "_tickets_style.jinja" %}
+  <style>
+    .queues {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin-block: 1em;
+    }
+
+    .queues a {
+      text-decoration: none;
+      padding: 0.3em 0.8em;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+    }
+
+    .queues a[aria-current="page"] {
+      background: CanvasText;
+      color: Canvas;
+    }
+
+    td.title {
+      min-width: 16em;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="crumbs"><a href="/lobby">lobby</a> / tickets</nav>
+  <h1>tickets ({{ app_title }})</h1>
+
+  <nav class="queues">
+    {% for key, label in queues.items() %}
+    <a href="?queue={{ key }}" {% if key == queue %}aria-current="page"{% endif %}>
+      {{ label }}{% if key in counts %} ({{ counts[key] }}){% endif %}
+    </a>
+    {% endfor %}
+  </nav>
+
+  {% if tickets %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>ticket</th>
+          <th>from</th>
+          <th>helper</th>
+          <th>{% if queue == "closed" %}closed{% else %}last message{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ticket in tickets %}
+        <tr>
+          <td class="muted">{{ ticket.id }}</td>
+          <td class="title">
+            <a href="/lobby/tickets/{{ ticket.id }}">{{ ticket.title or ticket.description|truncate(80) }}</a>
+            {% if ticket.category_tag.id %}<span class="pill">{{ ticket.category_tag.name }}</span>{% endif %}
+            {% if ticket.status != "CLOSED" and ticket.last_msg_by != UserType.HELPER %}
+            <span class="pill waiting" title="the last message wasn't from a helper">waiting</span>
+            {% endif %}
+          </td>
+          <td>{{ ticket.opened_by.username or ticket.opened_by.slack_id }}</td>
+          <td>{% if ticket.assigned_to.id %}{{ ticket.assigned_to.username or ticket.assigned_to.slack_id }}{% else %}<span class="muted">nobody</span>{% endif %}</td>
+          {% set when = ticket.closed_at if queue == "closed" else ticket.last_msg_at %}
+          <td><time datetime="{{ when.isoformat() if when else '' }}">{{ when.strftime("%Y-%m-%d %H:%M") if when else "" }}</time></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if tickets|length >= max_tickets_shown %}
+  <p class="muted">only showing the first {{ max_tickets_shown }} tickets.</p>
+  {% endif %}
+  {% else %}
+  <p><em>nothing here! go touch grass :)</em></p>
+  {% endif %}
+
+  {% include "_relative_times.jinja" %}
+</body>
+
+</html>

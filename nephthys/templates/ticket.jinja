@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>#{{ ticket.id }} - {{ app_title }}</title>
+  {% include "_tickets_style.jinja" %}
+  <style>
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4em 1.2em;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .thread {
+      list-style: none;
+      padding: 0;
+      margin-block: 1.5em;
+    }
+
+    .thread li {
+      padding: 0.75em 1em;
+      border-left: 3px solid var(--line);
+      margin-bottom: 0.75em;
+    }
+
+    .thread li.opener {
+      border-left-color: var(--accent);
+    }
+
+    .thread li.bot {
+      background: var(--soft);
+    }
+
+    .thread .who {
+      font-weight: bold;
+    }
+
+    .thread .text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0.3em 0 0;
+    }
+
+    .error {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.5em 1em;
+    }
+
+    form.reply textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 8em;
+      padding: 0.5em;
+    }
+
+    form.reply .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="crumbs"><a href="/lobby">lobby</a> / <a href="/lobby/tickets">tickets</a> / #{{ ticket.id }}</nav>
+  <h1>{{ ticket.title or "ticket #" ~ ticket.id }}</h1>
+
+  <div class="meta">
+    <span class="pill">{{ ticket.status|lower|replace("_", " ") }}</span>
+    <span>from {{ ticket.opened_by.username or ticket.opened_by.slack_id }}</span>
+    <span>helper: {% if ticket.assigned_to.id %}{{ ticket.assigned_to.username or ticket.assigned_to.slack_id }}{% else %}nobody yet{% endif %}</span>
+    {% if ticket.category_tag.id %}<span>category: {{ ticket.category_tag.name }}</span>{% endif %}
+    <span>opened <time datetime="{{ ticket.created_at.isoformat() }}">{{ ticket.created_at.strftime("%Y-%m-%d %H:%M") }}</time></span>
+    <a href="{{ slack_link }}">open in slack</a>
+  </div>
+
+  {% if messages %}
+  <ol class="thread">
+    {% for message in messages %}
+    <li class="{% if message.is_opener %}opener{% elif message.is_bot %}bot{% endif %}">
+      <span class="who">{{ message.author }}</span>
+      <time class="muted" datetime="{{ message.sent_at.isoformat() }}">{{ message.sent_at.strftime("%Y-%m-%d %H:%M") }}</time>
+      <p class="text">{{ message.text }}</p>
+      {% for file in message.files %}
+      <div class="muted">📎 {{ file }} (open in slack to see attachments)</div>
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="muted">couldn't load the slack thread, so here's the original question:</p>
+  <ol class="thread">
+    <li class="opener">
+      <p class="text">{{ ticket.description }}</p>
+    </li>
+  </ol>
+  {% endif %}
+
+  {% if error %}
+  <p class="error" role="alert">
+    {% if error == "empty_reply" %}your reply was empty!
+    {% elif error == "reply_too_long" %}that reply is too long for slack, sorry!
+    {% elif error == "thread_gone" %}the original message seems to have been deleted, so i couldn't reply.
+    {% elif error == "already_closed" %}this ticket is already resolved.
+    {% else %}something went wrong :({% endif %}
+  </p>
+  {% endif %}
+
+  <form class="reply" method="POST" action="/lobby/tickets/{{ ticket.id }}/reply">
+    <label for="reply-text">reply in the thread as {{ user.username or "you" }}:</label>
+    <textarea id="reply-text" name="text" maxlength="{{ max_reply_len }}"
+      placeholder="hey! thanks for reaching out..."></textarea>
+    <div class="buttons">
+      <button type="submit" name="action" value="reply">send reply</button>
+      {% if ticket.status != "CLOSED" %}
+      <button type="submit" name="action" value="reply_resolve">send &amp; resolve</button>
+      <button type="submit" name="action" value="resolve" formnovalidate>resolve without replying</button>
+      {% endif %}
+    </div>
+    <p class="muted">replies are posted by the bot under your name and picture. macros like <code>?faq</code> only work in slack for now.</p>
+  </form>
+
+  {% include "_relative_times.jinja" %}
+  <script>
+    // Stop double-sends while the reply is posting
+    document.querySelector("form.reply").addEventListener("submit", (event) => {
+      setTimeout(() => event.target.querySelectorAll("button").forEach((b) => (b.disabled = true)))
+    })
+    // Ctrl/Cmd+Enter sends the reply
+    document.getElementById("reply-text").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.target.form.requestSubmit(event.target.form.querySelector('button[value="reply"]'))
+      }
+    })
+  </script>
+</body>
+
+</html>
