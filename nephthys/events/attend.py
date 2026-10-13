@@ -29,13 +29,23 @@ MAX_OPTION_TEXT = 75
 SLACK_ID_PATTERN = re.compile(r"^(?:<@)?([UW][A-Z0-9]{6,})(?:\|[^>]*)?>?$")
 
 
+def escape_mrkdwn(text: str) -> str:
+    """Escape text from Attend (event names are set by event admins) so it
+    can't break out of a link or turn into a mention like <!channel>."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def event_message_text(event: AttendEvent) -> str:
+    return f"This question is about {escape_mrkdwn(event.name)}: {event.dashboard_url}"
+
+
 def event_message_blocks(event: AttendEvent) -> list[dict[str, Any]]:
     return [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f":calendar: This question is about *<{event.dashboard_url}|{event.name}>*",
+                "text": f":calendar: This question is about *<{event.dashboard_url}|{escape_mrkdwn(event.name)}>*",
             },
         }
     ]
@@ -87,7 +97,7 @@ async def post_event_context(
     await env.slack_client.chat_postMessage(
         channel=channel,
         thread_ts=thread_ts,
-        text=f"This question is about {event.name}: {event.dashboard_url}",
+        text=event_message_text(event),
         blocks=event_message_blocks(event),
         unfurl_links=False,
     )
@@ -179,7 +189,7 @@ async def on_event_selected(body: dict[str, Any], client: AsyncWebClient):
     await client.chat_update(
         channel=channel,
         ts=message["ts"],
-        text=f"This question is about {selected.name}: {selected.dashboard_url}",
+        text=event_message_text(selected),
         blocks=event_message_blocks(selected),
     )
     await post_participant_prompt(selected.slug, author_id, channel, thread_ts)
