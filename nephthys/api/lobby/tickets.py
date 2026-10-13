@@ -21,6 +21,8 @@ from nephthys.database.enums import TicketStatus
 from nephthys.database.enums import UserType
 from nephthys.database.tables import Ticket
 from nephthys.database.tables import User
+from nephthys.events.attend import EVENT_MESSAGE_PATTERN
+from nephthys.events.attend import PARTICIPANT_MESSAGE_PATTERN
 from nephthys.events.message_creation import record_thread_message
 from nephthys.utils.env import env
 from nephthys.utils.slack_user import get_user_profile
@@ -38,6 +40,7 @@ MAX_REPLY_LEN = 4000
 SLACK_MENTION = re.compile(r"<@([UW][A-Z0-9]+)(?:\|[^>]*)?>")
 SLACK_LINK = re.compile(r"<((?:https?|mailto):[^|>]+)(?:\|([^>]+))?>")
 SLACK_SPECIAL = re.compile(r"<!(here|channel|everyone)(?:\|[^>]*)?>")
+URL = re.compile(r"https?://[^\s<>\"')\]]+")
 
 
 def helpers_only(req: Request) -> Response:
@@ -121,7 +124,51 @@ def slack_text_to_plain(text: str, names: dict[str, str]) -> str:
         lambda m: f"{m.group(2)} ({m.group(1)})" if m.group(2) else m.group(1),
         text,
     )
+    return unescape_slack_text(text)
+
+
+def unescape_slack_text(text: str) -> str:
     return text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+
+def linkify(text: str) -> list[tuple[str, bool]]:
+    """Splits text into (segment, is_url) parts so the template can link URLs"""
+    parts: list[tuple[str, bool]] = []
+    last = 0
+    for match in URL.finditer(text):
+        url = match.group().rstrip(".,;:!?")
+        parts.append((text[last : match.start()], False))
+        parts.append((url, True))
+        last = match.start() + len(url)
+    parts.append((text[last:], False))
+    return [part for part in parts if part[0]]
+
+
+def find_attend_links(raw_messages: list[dict]) -> dict | None:
+    """Finds the Attend event and participants the bot linked in a thread"""
+    event = None
+    participants: list[str] = []
+    for m in raw_messages:
+        if "bot_id" not in m:
+            continue
+        text = m.get("text", "")
+        if match := EVENT_MESSAGE_PATTERN.match(text):
+            name, url = unescape_slack_text(match["name"]), match["url"]
+            # The latest pick wins, in case the event was picked again
+            event = {"name": name, "url": url}
+        elif match := PARTICIPANT_MESSAGE_PATTERN.match(text):
+            if match["url"] not in participants:
+                participants.append(match["url"])
+
+    # Only trust links that actually point at Attend
+    if event and not event["url"].startswith(env.attend_base_url + "/"):
+        event = None
+    participants = [
+        url for url in participants if url.startswith(env.attend_base_url + "/")
+    ]
+    if not event and not participants:
+        return None
+    return {"event": event, "participants": participants}
 
 
 async def get_display_names(slack_ids: set[str]) -> dict[str, str]:
@@ -136,7 +183,7 @@ async def get_display_names(slack_ids: set[str]) -> dict[str, str]:
 
 
 async def get_thread_messages(ticket: Ticket) -> list[dict]:
-    """Fetches the messages in a ticket's Slack thread, in a template-friendly format"""
+    """Fetches the raw messages in a ticket's Slack thread"""
     try:
         res = await env.slack_client.conversations_replies(
             channel=env.slack_help_channel, ts=ticket.msg_ts, limit=200
@@ -144,8 +191,13 @@ async def get_thread_messages(ticket: Ticket) -> list[dict]:
     except SlackApiError as e:
         logging.warning(f"Failed to fetch thread for ticket_id={ticket.id}: {e}")
         return []
-    raw_messages: list[dict] = res.get("messages", [])
+    return res.get("messages", [])
 
+
+async def format_thread_messages(
+    ticket: Ticket, raw_messages: list[dict]
+) -> list[dict]:
+    """Turns raw Slack messages into a template-friendly format"""
     slack_ids = {m["user"] for m in raw_messages if m.get("user")}
     for m in raw_messages:
         slack_ids.update(SLACK_MENTION.findall(m.get("text", "")))
@@ -166,7 +218,7 @@ async def get_thread_messages(ticket: Ticket) -> list[dict]:
                 "author": author,
                 "is_bot": is_bot,
                 "is_opener": bool(author_id and author_id == opener_slack_id),
-                "text": slack_text_to_plain(m.get("text", ""), names),
+                "parts": linkify(slack_text_to_plain(m.get("text", ""), names)),
                 "files": [f.get("name") or "file" for f in m.get("files", [])],
                 "sent_at": datetime.fromtimestamp(float(m["ts"]), UTC),
             }
@@ -194,10 +246,12 @@ async def ticket_detail(req: Request):
     if not ticket:
         return Response("no ticket with that id.", status_code=404)
 
+    raw_messages = await get_thread_messages(ticket)
     context = {
         "user": user,
         "ticket": ticket,
-        "messages": await get_thread_messages(ticket),
+        "messages": await format_thread_messages(ticket, raw_messages),
+        "attend": find_attend_links(raw_messages),
         "slack_link": get_question_message_link(ticket),
         "error": req.query_params.get("error"),
         "max_reply_len": MAX_REPLY_LEN,

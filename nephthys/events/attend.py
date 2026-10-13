@@ -39,6 +39,20 @@ def event_message_text(event: AttendEvent) -> str:
     return f"This question is about {escape_mrkdwn(event.name)}: {event.dashboard_url}"
 
 
+def participant_message_text(url: str) -> str:
+    return f"Participant: {url}"
+
+
+# Match the fallback text of the messages above, so the web UI can find them
+# in a thread. Slack may wrap the URL in <...> when it auto-links it.
+EVENT_MESSAGE_PATTERN = re.compile(
+    r"^This question is about (?P<name>.+): <?(?P<url>https?://[^\s|>]+)>?$"
+)
+PARTICIPANT_MESSAGE_PATTERN = re.compile(
+    r"^Participant: <?(?P<url>https?://[^\s|>]+)>?$"
+)
+
+
 def event_message_blocks(event: AttendEvent) -> list[dict[str, Any]]:
     return [
         {
@@ -243,7 +257,7 @@ async def on_participant_submitted(body: dict[str, Any], client: AsyncWebClient)
     await client.chat_postMessage(
         channel=channel,
         thread_ts=thread_ts,
-        text=f"Participant: {url}",
+        text=participant_message_text(url),
         blocks=[
             {
                 "type": "section",

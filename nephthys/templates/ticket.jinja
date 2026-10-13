@@ -45,6 +45,17 @@
       margin: 0.3em 0 0;
     }
 
+    .attend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4em 1.5em;
+      margin-top: 1em;
+      padding: 0.6em 1em;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 0.4em;
+    }
+
     .error {
       border: 1px solid var(--accent);
       color: var(--accent);
@@ -80,13 +91,24 @@
     <a href="{{ slack_link }}">open in slack</a>
   </div>
 
+  {% if attend %}
+  <section class="attend" aria-label="Attend">
+    {% if attend.event %}
+    <div>📅 event: <a href="{{ attend.event.url }}" target="_blank" rel="noopener">{{ attend.event.name }}</a></div>
+    {% endif %}
+    {% for url in attend.participants %}
+    <div>👤 <a href="{{ url }}" target="_blank" rel="noopener">participant{% if attend.participants|length > 1 %} {{ loop.index }}{% endif %}</a></div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
   {% if messages %}
   <ol class="thread">
     {% for message in messages %}
     <li class="{% if message.is_opener %}opener{% elif message.is_bot %}bot{% endif %}">
       <span class="who">{{ message.author }}</span>
       <time class="muted" datetime="{{ message.sent_at.isoformat() }}">{{ message.sent_at.strftime("%Y-%m-%d %H:%M") }}</time>
-      <p class="text">{{ message.text }}</p>
+      <p class="text">{% for part, is_url in message.parts %}{% if is_url %}<a href="{{ part }}" target="_blank" rel="noopener">{{ part }}</a>{% else %}{{ part }}{% endif %}{% endfor %}</p>
       {% for file in message.files %}
       <div class="muted">📎 {{ file }} (open in slack to see attachments)</div>
       {% endfor %}
