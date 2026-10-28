@@ -73,6 +73,11 @@ class Transcript(BaseModel):
         description="Message when ticket is resolved due to being stale",
     )
 
+    ticket_resolve_github_issue: str = Field(
+        default="",
+        description="Message when ticket is resolved because its linked GitHub issue was closed",
+    )
+
     thread_broadcast_delete: str = Field(
         default="hey! please keep your messages *all in one thread* to make it easier to read! i've gone ahead and removed that message from the channel for ya :D",
     )
@@ -162,6 +167,10 @@ if your question has been answered, please hit the button below to mark it as re
         if not self.ticket_resolve_stale:
             self.ticket_resolve_stale = f""":rac_nooo: it looks like this post is a bit old! if you still need help, please make a new post in <#{self.help_channel}> and someone'll be happy to help you out! ^~^
         """
+
+        if not self.ticket_resolve_github_issue:
+            self.ticket_resolve_github_issue = f"""yay! the GitHub issue for this post (<{{issue_url}}|{{issue_name}}>) has been closed, so i've marked it as resolved! if you're still having trouble, please make a new post in <#{self.help_channel}> and someone'll be happy to help you out! ^~^
+    """
 
         if not self.faq_macro:
             self.faq_macro = f"hey, (user)! this question is answered in the faq i sent earlier, please make sure to check it out! :rac_cute:\n\n<{self.faq_link}|here it is again>"

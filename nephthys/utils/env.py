@@ -139,6 +139,10 @@ class Environment:
             "ATTEND_BASE_URL", "https://attend.hackclub.com"
         ).rstrip("/")
 
+        # Optional: lets linked issues in private repos be checked, and raises
+        # GitHub's rate limit from 60 to 5,000 requests an hour
+        self.github_token = os.environ.get("GITHUB_TOKEN")
+
         self.slack_heartbeat_channel = os.environ.get("SLACK_HEARTBEAT_CHANNEL")
 
         # Stale ticket auto-close: number of days of inactivity before closing

@@ -54,6 +54,10 @@ Helpers can see more detailed stats at any time on the app home for the bot!
 
 When you send a message in a help thread, that thread is assigned to you and it is up to you to resolve it. You can see a list of threads waiting for you on the app home - just select the Assigned Tickets tab at the top
 
+### GitHub issues
+
+If an admin posts a link to a GitHub issue in a help thread, Nephthys privately asks them whether to link it to the ticket. Once the issue is closed, the ticket is resolved automatically. Set `GITHUB_TOKEN` to check issues in private repos (see `docs/configuration.md`).
+
 ### Web UI
 
 Helpers can work through tickets from a browser at `/lobby/tickets` (requires Hack Club Auth to be set up - see `docs/api.md`). You can browse the unanswered, in-progress, assigned-to-you and recently closed queues, read the Slack thread, and reply or resolve. Replies are posted by the bot under your Slack name and profile picture, and assign the ticket to you just like replying in Slack would.

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from starlette.applications import Starlette
 
+from nephthys.tasks.close_github_issues import close_tickets_for_closed_issues
 from nephthys.tasks.close_stale import close_stale_tickets
 from nephthys.tasks.daily_stats import send_daily_stats
 from nephthys.tasks.fulfillment_reminder import send_fulfillment_reminder
@@ -76,6 +77,13 @@ async def main(_app: Starlette):
             )
         else:
             logging.debug("Stale ticket closing has not been configured")
+
+        scheduler.add_job(
+            close_tickets_for_closed_issues,
+            "interval",
+            minutes=10,
+            max_instances=1,
+        )
         scheduler.start()
 
         delete_msg_task = asyncio.create_task(process_queue())

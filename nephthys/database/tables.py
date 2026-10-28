@@ -96,6 +96,15 @@ class Ticket(Table, tablename="Ticket"):
         on_delete=OnDelete.set_null,
         on_update=OnUpdate.cascade,
     )
+    # The ticket is resolved once this issue is closed
+    github_issue_url = Text(null=True, db_column_name="githubIssueUrl")
+    github_issue_linked_by = ForeignKey(
+        references=User,
+        db_column_name="githubIssueLinkedById",
+        null=True,
+        on_delete=OnDelete.set_null,
+        on_update=OnUpdate.cascade,
+    )
     created_at = Timestamptz(default=TimestamptzNow(), db_column_name="createdAt")
 
 

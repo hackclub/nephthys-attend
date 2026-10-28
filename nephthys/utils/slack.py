@@ -11,6 +11,7 @@ from blockkit import Section
 from blockkit import StaticSelect
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.context.ack.async_ack import AsyncAck
+from slack_bolt.context.respond.async_respond import AsyncRespond
 from slack_sdk.web.async_client import AsyncWebClient
 
 from nephthys.actions.assign_category_tag import assign_category_tag_callback
@@ -38,6 +39,9 @@ from nephthys.events.attend import on_participant_submitted
 from nephthys.events.attend import PARTICIPANT_INPUT_ACTION
 from nephthys.events.channel_join import channel_join
 from nephthys.events.channel_left import channel_left
+from nephthys.events.github_issue import DISMISS_ACTION as GITHUB_ISSUE_DISMISS_ACTION
+from nephthys.events.github_issue import LINK_ACTION as GITHUB_ISSUE_LINK_ACTION
+from nephthys.events.github_issue import on_link_clicked
 from nephthys.events.message_creation import on_message
 from nephthys.events.message_deletion import on_message_deletion
 from nephthys.options.category_tags import get_category_tags
@@ -89,6 +93,20 @@ async def handle_attend_participant_lookup(
 ):
     await ack()
     await on_participant_submitted(body, client)
+
+
+@app.action(GITHUB_ISSUE_LINK_ACTION)
+async def handle_github_issue_link(
+    ack: AsyncAck, body: Dict[str, Any], respond: AsyncRespond
+):
+    await ack()
+    await on_link_clicked(body, respond)
+
+
+@app.action(GITHUB_ISSUE_DISMISS_ACTION)
+async def handle_github_issue_dismiss(ack: AsyncAck, respond: AsyncRespond):
+    await ack()
+    await respond(delete_original=True)
 
 
 @app.options("tag-list")  # compat with old backend msgs
