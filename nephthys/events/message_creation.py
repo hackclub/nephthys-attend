@@ -17,6 +17,7 @@ from nephthys.database.tables import CategoryTag
 from nephthys.database.tables import Ticket
 from nephthys.database.tables import User
 from nephthys.events.attend import start_attend_flow
+from nephthys.events.github_issue import prompt_issue_link
 from nephthys.events.message.send_backend_message import backend_message_blocks
 from nephthys.events.message.send_backend_message import backend_message_fallback_text
 from nephthys.events.message.send_backend_message import send_backend_message
@@ -74,6 +75,7 @@ async def handle_message_in_thread(event: dict[str, Any], db_user: User | None):
 
     - If the message starts with "?" (and is from a helper), run the corresponding macro.
     - Otherwise, update the assigned helper, ticket status, and lastMsg fields.
+    - If an admin linked a GitHub issue, offer to link it to the ticket.
     """
     ticket_message = (
         await Ticket.objects(Ticket.opened_by)
@@ -96,6 +98,9 @@ async def handle_message_in_thread(event: dict[str, Any], db_user: User | None):
         return
 
     await record_thread_message(ticket_message, db_user, event["user"])
+
+    if db_user and db_user.admin:
+        await prompt_issue_link(ticket_message, event)
 
 
 async def record_thread_message(

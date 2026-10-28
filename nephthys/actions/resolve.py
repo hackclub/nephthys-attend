@@ -29,6 +29,7 @@ async def resolve(
     stale: bool = False,
     add_reaction: bool = True,
     send_resolved_message: bool = True,
+    resolved_message: str | None = None,
 ):
     resolving_user = await User.objects().where(User.slack_id == resolver).first()
     if not resolving_user:
@@ -97,7 +98,7 @@ async def resolve(
         return
 
     # Build the "ticket resolved!" message
-    text = (
+    text = resolved_message or (
         env.transcript.ticket_resolve.format(user_id=resolving_user.slack_id)
         if not stale
         else env.transcript.ticket_resolve_stale.format(user_id=resolving_user.slack_id)

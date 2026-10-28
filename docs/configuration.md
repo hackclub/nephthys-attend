@@ -168,6 +168,17 @@ For an Attend admin help channel. When an event admin asks a question, Nephthys 
 | `ATTEND_API_KEY` | Required | An Attend global API token (`attn_...`) with the `support:read` scope, created at `/admin/global_api_tokens`; leave unset to disable | _Unset_ (disabled) |
 | `ATTEND_BASE_URL` | Optional | Base URL of the Attend instance | `https://attend.hackclub.com` |
 
+## GitHub issue linking
+
+When an admin posts a GitHub issue link in a help thread, Nephthys privately asks them whether to link it to the ticket. Every 10 minutes, it checks linked issues and resolves their tickets once the issue is closed.
+
+This works for public repos without any configuration, but GitHub only allows 60 unauthenticated requests an hour. Setting a token raises that to 5,000 and lets Nephthys check issues in private repos. A [fine-grained token](https://github.com/settings/personal-access-tokens/new) with read-only access to issues on the relevant repos is enough.
+
+<!-- prettier-ignore -->
+| Variable | Required? | Description | Default |
+| -------- | --------- | ----------- | ------- |
+| `GITHUB_TOKEN` | Optional | GitHub token used to check linked issues | _Unset_ (unauthenticated) |
+
 ## Other feature flags
 
 You may wish to disable the daily summary for every low-traffic support channels.
